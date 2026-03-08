@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Email Tool Test</title>
+  <style>
+    body { font-family: sans-serif; max-width: 560px; margin: 40px auto; padding: 0 16px; }
+    section { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px 20px; margin-bottom: 16px; }
+    input, textarea { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; margin-top: 4px; }
+    label { display: block; font-size: 13px; font-weight: 600; margin-top: 10px; }
+    .hint { font-size: 12px; color: #888; margin: 4px 0 8px; }
+    button { margin-top: 14px; padding: 10px 20px; background: #2563eb; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    button:disabled { background: #93c5fd; cursor: not-allowed; }
+    .error { color: red; }
+    .success { color: green; }
+    ul { font-size: 12px; color: #888; }
+  </style>
+</head>
+<body>
+  <h2>📧 Email Tool</h2>
+
+  <!-- Step 1: Upload -->
+  <section>
+    <h3>1. Recipients</h3>
+    <p class="hint">Upload a CSV with <code>name</code> and <code>email</code> columns.</p>
+    <input type="file" id="fileInput" accept=".csv,.txt" />
+    <div id="uploadResult"></div>
+  </section>
+
+  <!-- Step 2: Compose -->
+  <section>
+    <h3>2. Compose Email</h3>
+
+    <label>Subject *</label>
+    <input type="text" id="subject" placeholder="e.g. Big news from Acme!" />
+
+    <label>Business Name</label>
+    <input type="text" id="businessName" placeholder="e.g. Acme Co." />
+
+    <label>Header</label>
+    <input type="text" id="header" placeholder="e.g. We have exciting news for you!" />
+
+    <label>Body *</label>
+    <p class="hint">Each line becomes a paragraph. All emails start with "Hi [name]," automatically.</p>
+    <textarea id="body" rows="5" placeholder="Write your message here..."></textarea>
+
+    <label>Website</label>
+    <input type="text" id="website" placeholder="e.g. https://acme.com" />
+
+    <label>Reply-To Email</label>
+    <p class="hint">Replies from recipients will go to this address.</p>
+    <input type="text" id="replyTo" placeholder="e.g. hello@acme.com" />
+  </section>
+
+  <!-- Step 3: Send -->
+  <section>
+    <p id="sendStatus" class="hint">⬆️ Upload a CSV above to enable sending.</p>
+    <button id="sendBtn" onclick="sendEmails()" disabled>Send</button>
+    <div id="sendResultContent"></div>
+  </section>
+
+  <script>
+    let recipients = [];
+
+    function updateSendState() {
+      const btn = document.getElementById("sendBtn");
+      const status = document.getElementById("sendStatus");
+      const hasRecipients = recipients.length > 0;
+      const hasSubject = document.getElementById("subject").value.trim();
+      const hasBody = document.getElementById("body").value.trim();
+
+      if (!hasRecipients) {
+        status.textContent = "⬆️ Upload a CSV above to enable sending.";
+        btn.disabled = true;
+      } else if (!hasSubject || !hasBody) {
+        status.textContent = "✏️ Fill in subject and body to send.";
+        btn.disabled = true;
+      } else {
+        status.textContent = `🚀 Ready to send to ${recipients.length} recipient${recipients.length !== 1 ? "s" : ""}.`;
+        btn.disabled = false;
+        btn.textContent = `Send to ${recipients.length} recipient${recipients.length !== 1 ? "s" : ""}`;
+      }
+    }
+
+    document.getElementById("subject").addEventListener("input", updateSendState);
+    document.getElementById("body").addEventListener("input", updateSendState);
+
+    document.getElementById("fileInput").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const resultDiv = document.getElementById("uploadResult");
+      resultDiv.innerHTML = "<p style='font-size:13px;color:#888'>Uploading…</p>";
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch("http://127.0.0.1:8000/upload-contacts", { method: "POST", body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Upload failed");
+
+        recipients = data.recipients;
+
+        let html = `<p class="success" style="margin:8px 0 4px">✅ <strong>${data.valid_count}</strong> valid recipient${data.valid_count !== 1 ? "s" : ""}</p>`;
+        if (data.duplicate_count > 0) html += `<p style="margin:4px 0;font-size:13px">🔁 ${data.duplicate_count} duplicate${data.duplicate_count !== 1 ? "s" : ""} removed</p>`;
+        if (data.invalid_count > 0) html += `<p style="margin:4px 0;font-size:13px">⚠️ ${data.invalid_count} invalid email${data.invalid_count !== 1 ? "s" : ""} skipped</p>`;
+        resultDiv.innerHTML = html;
+        updateSendState();
+      } catch (err) {
+        resultDiv.innerHTML = `<p class="error">${err.message}</p>`;
+      }
+    });
+
+    async function sendEmails() {
+      const btn = document.getElementById("sendBtn");
+      btn.disabled = true;
+      btn.textContent = "Sending…";
+
+      const resultContent = document.getElementById("sendResultContent");
+      resultContent.innerHTML = "";
+
+      try {
+        const res = await fetch("http://127.0.0.1:8000/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipients,
+            subject:       document.getElementById("subject").value,
+            header:        document.getElementById("header").value,
+            body:          document.getElementById("body").value,
+            business_name: document.getElementById("businessName").value,
+            website:       document.getElementById("website").value,
+            reply_to:      document.getElementById("replyTo").value,
+          }),
+        });
+        const data = await res.json();
+        let html = `<p class="success" style="margin-top:12px">✅ Sent: <strong>${data.sent_count}</strong></p>`;
+        if (data.error_count > 0) {
+          html += `<p class="error">❌ Failed: ${data.error_count}</p>`;
+          data.errors.forEach(e => html += `<p class="error" style="font-size:12px">${e.email}: ${e.error}</p>`);
+        }
+        resultContent.innerHTML = html;
+      } catch (err) {
+        resultContent.innerHTML = `<p class="error">${err.message}</p>`;
+      } finally {
+        updateSendState();
+      }
+    }
+  </script>
+</body>
+</html>
