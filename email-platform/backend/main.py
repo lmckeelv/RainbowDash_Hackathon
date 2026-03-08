@@ -29,8 +29,8 @@ app.add_middleware(
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 
 def load_template() -> str:
-    """Load email.html and embed images as base64 data URIs."""
-    html = (TEMPLATE_DIR / "email.html").read_text(encoding="utf-8")
+    """Load New Message.html and embed images as base64 data URIs."""
+    html = (TEMPLATE_DIR / "New Message.html").read_text(encoding="utf-8")
 
     # Replace all image src paths with base64 data URIs
     images_dir = TEMPLATE_DIR / "images"
