@@ -1,11 +1,13 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import resend
 import os
+import time
 from pathlib import Path
 from dotenv import load_dotenv
+from uuid import uuid4
 
 from services.parse_contacts import parse_contacts
 from services.validate_email import clean_and_validate
@@ -30,13 +32,6 @@ TEMPLATE_DIR = Path(__file__).parent / "templates"
 
 
 def load_all_templates() -> dict[str, str]:
-    """
-    Load every .html file in the templates folder.
-    Images should use hosted URLs (e.g. imgbb) directly in the HTML —
-    no base64 embedding needed.
-    Key = filename stem, lowercased, spaces replaced with hyphens.
-    e.g. "New Message.html" -> "new-message", "email.html" -> "email"
-    """
     templates = {}
     for html_file in TEMPLATE_DIR.glob("*.html"):
         key = html_file.stem.lower().replace(" ", "-")
@@ -46,13 +41,57 @@ def load_all_templates() -> dict[str, str]:
 
 TEMPLATES = load_all_templates()
 
+# Cache of validated contacts uploaded from CSV files.
+# Key: upload_id, Value: list of recipient dicts {email, name}
+UPLOADED_CONTACTS: dict[str, list[dict[str, str]]] = {}
 
-def render_template(template: str, fields: dict) -> str:
-    """Replace all {{placeholders}} in the template with field values."""
+
+def render_template(template: str, fields: dict[str, str]) -> str:
     result = template
     for key, value in fields.items():
         result = result.replace(f"{{{{{key}}}}}", value or "")
     return result
+
+
+def _is_retryable_send_error(exc: Exception) -> bool:
+    msg = str(exc).lower()
+    retry_markers = [
+        "429",
+        "rate limit",
+        "too many requests",
+        "timeout",
+        "timed out",
+        "connection",
+        "temporarily unavailable",
+        "service unavailable",
+    ]
+    return any(marker in msg for marker in retry_markers)
+
+
+def _send_with_retry(email_payload: dict, max_attempts: int = 4):
+    last_error = None
+
+    for attempt in range(max_attempts):
+        try:
+            response = resend.Emails.send(email_payload)
+
+            # Normalize SDK response shapes that embed errors in response body.
+            if isinstance(response, dict) and response.get("error"):
+                err = response.get("error")
+                if isinstance(err, dict):
+                    raise RuntimeError(err.get("message") or str(err))
+                raise RuntimeError(str(err))
+
+            return response
+        except Exception as exc:
+            last_error = exc
+            should_retry = attempt < max_attempts - 1 and _is_retryable_send_error(exc)
+            if should_retry:
+                time.sleep(0.6 * (2 ** attempt))
+                continue
+            raise
+
+    raise RuntimeError(str(last_error) if last_error else "Unknown send failure")
 
 
 # ---------- Models ----------
@@ -61,9 +100,11 @@ class Recipient(BaseModel):
     email: str
     name: str = ""
 
+
 class SendRequest(BaseModel):
-    recipients: list[Recipient]
-    template_name: str = ""   # falls back to first available template if omitted
+    recipients: list[Recipient] = Field(default_factory=list)
+    upload_id: str = ""          # preferred: id returned from /upload-contacts
+    template_name: str = ""      # falls back to first available template if omitted
     subject: str
     header: str = ""
     body: str
@@ -76,7 +117,6 @@ class SendRequest(BaseModel):
 
 @app.get("/templates")
 def list_templates():
-    """Return all available template names for the frontend picker."""
     return {"templates": list(TEMPLATES.keys())}
 
 
@@ -90,12 +130,12 @@ async def preview_template(
     business_name: str = "MailDash Co.",
     website: str = "https://maildash.gay",
 ):
-    """Render a template with live field values — used for the frontend preview iframe."""
     if template_name not in TEMPLATES:
         raise HTTPException(
             status_code=404,
             detail=f"Template '{template_name}' not found. Available: {list(TEMPLATES.keys())}"
         )
+
     html = render_template(TEMPLATES[template_name], {
         "name": name,
         "subject": subject,
@@ -116,13 +156,18 @@ async def upload_contacts(file: UploadFile = File(...)):
 
     try:
         raw_contacts = parse_contacts(content, file.filename)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
     result = clean_and_validate(raw_contacts)
+    valid_recipients = result["valid"]
+
+    upload_id = uuid4().hex
+    UPLOADED_CONTACTS[upload_id] = valid_recipients
 
     return {
-        "recipients": result["valid"],
+        "upload_id": upload_id,
+        "recipients": valid_recipients,
         "valid_count": result["valid_count"],
         "invalid_count": result["invalid_count"],
         "duplicate_count": result["duplicate_count"],
@@ -133,53 +178,89 @@ async def upload_contacts(file: UploadFile = File(...)):
 
 @app.post("/send")
 async def send_emails(req: SendRequest):
-    if not req.recipients:
-        raise HTTPException(status_code=400, detail="No recipients provided.")
-    if not resend.api_key:
-        raise HTTPException(status_code=500, detail="RESEND_API_KEY not configured.")
-    if not TEMPLATES:
-        raise HTTPException(status_code=500, detail="No templates found in backend/templates/")
+    # 1) Resolve recipients.
+    recipients: list[Recipient] = list(req.recipients)
+    used_cached_upload = False
+    cache_missing = False
 
-    # Use requested template, or fall back to the first one
+    if req.upload_id:
+        stored = UPLOADED_CONTACTS.get(req.upload_id)
+        if stored is not None:
+            recipients = [Recipient(**r) for r in stored]
+            used_cached_upload = True
+        else:
+            # Fallback to recipients from request body if cache was lost
+            # (e.g. backend restart) instead of hard failing.
+            cache_missing = True
+
+    if not recipients:
+        raise HTTPException(status_code=400, detail="No recipients provided. Upload contacts first.")
+
+    # 2) Sanity-check config.
+    if not resend.api_key:
+        raise HTTPException(status_code=500, detail="RESEND_API_KEY is not configured on the server.")
+    if not TEMPLATES:
+        raise HTTPException(status_code=500, detail="No email templates found in backend/templates/")
+
+    # 3) Resolve template.
     template_key = req.template_name if req.template_name in TEMPLATES else next(iter(TEMPLATES))
     template = TEMPLATES[template_key]
 
-    errors = []
-    sent = []
+    # 4) Send loop.
+    errors: list[dict] = []
+    sent: list[str] = []
+    sent_details: list[dict] = []
 
-    for recipient in req.recipients:
+    for recipient in recipients:
         try:
-            display_name = recipient.name or "there"
+            display_name = recipient.name.strip() if recipient.name else "there"
             html = render_template(template, {
                 "name": display_name,
                 "body": req.body,
                 "subject": req.subject,
-                "header": req.header,
+                "header": req.header or req.subject,
                 "business_name": req.business_name,
                 "website": req.website,
             })
-            email_payload = {
+
+            email_payload: dict = {
                 "from": SENDER_EMAIL,
-                "to": recipient.email,
+                "to": [recipient.email],
                 "subject": req.subject,
                 "html": html,
             }
             if req.reply_to:
                 email_payload["reply_to"] = req.reply_to
 
-            resend.Emails.send(email_payload)
-            sent.append(recipient.email)
-        except Exception as e:
-            errors.append({"email": recipient.email, "error": str(e)})
+            response = _send_with_retry(email_payload)
+            provider_id = response.get("id") if isinstance(response, dict) else None
 
+            sent.append(recipient.email)
+            sent_details.append({"email": recipient.email, "provider_id": provider_id})
+        except Exception as exc:
+            errors.append({"email": recipient.email, "error": str(exc)})
+
+    # 5) Return summary.
     return {
         "sent_count": len(sent),
         "error_count": len(errors),
+        "attempted_count": len(recipients),
         "sent": sent,
+        "sent_details": sent_details,
         "errors": errors,
+        "template_used": template_key,
+        "upload_id_used": req.upload_id or "",
+        "used_cached_upload": used_cached_upload,
+        "upload_cache_missing": cache_missing,
     }
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "templates_loaded": list(TEMPLATES.keys())}
+    return {
+        "status": "ok",
+        "templates_loaded": list(TEMPLATES.keys()),
+        "cached_uploads": len(UPLOADED_CONTACTS),
+        "sender_email": SENDER_EMAIL,
+        "resend_configured": bool(resend.api_key),
+    }
