@@ -1,3 +1,5 @@
+import React from "react";
+
 export default function EmailPreview({ html }) {
   return (
     <div style={{ marginTop: "20px" }}>

@@ -1,3 +1,5 @@
+import React from "react";
+
 export default function TemplatePicker({ selectedTemplate, onSelect }) {
   const templates = ["promo", "newsletter", "announcement"];
 
