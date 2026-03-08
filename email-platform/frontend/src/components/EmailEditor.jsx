@@ -114,7 +114,7 @@ export default function EmailEditor() {
   function buildPreviewUrl(templateName) {
     if (!templateName) return null;
     const p = new URLSearchParams({
-      name:          "Laura",
+      name:          "[Name]",
       subject:       subject.trim()      || "Your Subject Line",
       header:        header.trim()       || "Your header goes here",
       body:          body.trim()         || "Your email body will appear here. Start typing on the left to see a live preview.",
