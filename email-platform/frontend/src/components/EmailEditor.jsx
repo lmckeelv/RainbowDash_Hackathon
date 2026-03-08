@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-const API = "http://localhost:8000";
+const API = "https://rainbowdashhackathon-production.up.railway.app";
 
 const C = {
   primary:       "#4f46e5",
