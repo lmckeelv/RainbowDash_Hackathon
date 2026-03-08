@@ -1,9 +1,9 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import resend
 import os
-import base64
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -28,24 +28,23 @@ app.add_middleware(
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 
-def load_template() -> str:
-    """Load New Message.html and embed images as base64 data URIs."""
-    html = (TEMPLATE_DIR / "New Message.html").read_text(encoding="utf-8")
 
-    # Replace all image src paths with base64 data URIs
-    images_dir = TEMPLATE_DIR / "images"
-    for img_file in images_dir.iterdir():
-        if img_file.suffix.lower() in (".png", ".jpg", ".jpeg", ".gif"):
-            b64 = base64.b64encode(img_file.read_bytes()).decode("utf-8")
-            mime = "image/png" if img_file.suffix.lower() == ".png" else "image/jpeg"
-            data_uri = f"data:{mime};base64,{b64}"
-            # Replace both the relative path variants Canva uses
-            html = html.replace(f"images/{img_file.name}", data_uri)
+def load_all_templates() -> dict[str, str]:
+    """
+    Load every .html file in the templates folder.
+    Images should use hosted URLs (e.g. imgbb) directly in the HTML —
+    no base64 embedding needed.
+    Key = filename stem, lowercased, spaces replaced with hyphens.
+    e.g. "New Message.html" -> "new-message", "email.html" -> "email"
+    """
+    templates = {}
+    for html_file in TEMPLATE_DIR.glob("*.html"):
+        key = html_file.stem.lower().replace(" ", "-")
+        templates[key] = html_file.read_text(encoding="utf-8")
+    return templates
 
-    return html
 
-# Load once at startup
-EMAIL_TEMPLATE = load_template()
+TEMPLATES = load_all_templates()
 
 
 def render_template(template: str, fields: dict) -> str:
@@ -64,6 +63,7 @@ class Recipient(BaseModel):
 
 class SendRequest(BaseModel):
     recipients: list[Recipient]
+    template_name: str = ""   # falls back to first available template if omitted
     subject: str
     header: str = ""
     body: str
@@ -73,6 +73,39 @@ class SendRequest(BaseModel):
 
 
 # ---------- Routes ----------
+
+@app.get("/templates")
+def list_templates():
+    """Return all available template names for the frontend picker."""
+    return {"templates": list(TEMPLATES.keys())}
+
+
+@app.get("/preview/{template_name}", response_class=HTMLResponse)
+async def preview_template(
+    template_name: str,
+    name: str = "[Name]",
+    subject: str = "Big news from MailDash!",
+    header: str = "We have exciting news for you!",
+    body: str = "We're launching something new and we think you'll love it.\nStay tuned for more details coming soon.",
+    business_name: str = "MailDash Co.",
+    website: str = "https://maildash.gay",
+):
+    """Render a template with live field values — used for the frontend preview iframe."""
+    if template_name not in TEMPLATES:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Template '{template_name}' not found. Available: {list(TEMPLATES.keys())}"
+        )
+    html = render_template(TEMPLATES[template_name], {
+        "name": name,
+        "subject": subject,
+        "header": header,
+        "body": body,
+        "business_name": business_name,
+        "website": website,
+    })
+    return HTMLResponse(content=html)
+
 
 @app.post("/upload-contacts")
 async def upload_contacts(file: UploadFile = File(...)):
@@ -104,15 +137,20 @@ async def send_emails(req: SendRequest):
         raise HTTPException(status_code=400, detail="No recipients provided.")
     if not resend.api_key:
         raise HTTPException(status_code=500, detail="RESEND_API_KEY not configured.")
+    if not TEMPLATES:
+        raise HTTPException(status_code=500, detail="No templates found in backend/templates/")
+
+    # Use requested template, or fall back to the first one
+    template_key = req.template_name if req.template_name in TEMPLATES else next(iter(TEMPLATES))
+    template = TEMPLATES[template_key]
 
     errors = []
     sent = []
 
     for recipient in req.recipients:
         try:
-            display_name = recipient.name if recipient.name else "there"
-
-            html = render_template(EMAIL_TEMPLATE, {
+            display_name = recipient.name or "there"
+            html = render_template(template, {
                 "name": display_name,
                 "body": req.body,
                 "subject": req.subject,
@@ -120,7 +158,6 @@ async def send_emails(req: SendRequest):
                 "business_name": req.business_name,
                 "website": req.website,
             })
-
             email_payload = {
                 "from": SENDER_EMAIL,
                 "to": recipient.email,
@@ -145,4 +182,4 @@ async def send_emails(req: SendRequest):
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "templates_loaded": list(TEMPLATES.keys())}
