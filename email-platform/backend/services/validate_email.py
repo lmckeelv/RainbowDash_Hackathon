@@ -6,14 +6,16 @@ def validate_email(email: str) -> bool:
     return bool(EMAIL_REGEX.match(email.strip()))
 
 
-def clean_and_validate(raw_emails: list[str]) -> dict:
+def clean_and_validate(raw_contacts: list[dict]) -> dict:
     valid = []
     invalid = []
     seen = set()
     duplicates = []
 
-    for entry in raw_emails:
-        email = entry.strip().lower()
+    for contact in raw_contacts:
+        email = contact.get("email", "").strip().lower()
+        name  = contact.get("name", "").strip()
+
         if not email:
             continue
 
@@ -23,7 +25,7 @@ def clean_and_validate(raw_emails: list[str]) -> dict:
             duplicates.append(email)
         else:
             seen.add(email)
-            valid.append(email)
+            valid.append({"email": email, "name": name})
 
     return {
         "valid": valid,
