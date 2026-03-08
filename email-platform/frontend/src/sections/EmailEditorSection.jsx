@@ -1,141 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-
-// ─── renderEmailHtml ──────────────────────────────────────────────────────────
-function renderEmailHtml(templateId, data = {}) {
-  const {
-    subject     = "",
-    preheader   = "",
-    body        = "",
-    ctaText     = "Learn More",
-    ctaUrl      = "#",
-    companyName = "RainbowDash",
-  } = data;
-
-  const bodyHtml = body
-    .split(/\n{2,}/)
-    .map((para) => `<p style="margin:0 0 16px 0;line-height:1.7;">${para.split("\n").join("<br/>")}</p>`)
-    .join("");
-
-  const preheaderHtml = preheader
-    ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;color:#fff;line-height:1px;">${preheader}&nbsp;&#847;</div>`
-    : "";
-
-  if (templateId === "promo") {
-    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>${subject}</title></head>
-<body style="margin:0;padding:0;background:#f4f4f7;font-family:'Segoe UI',system-ui,sans-serif;">
-  ${preheaderHtml}
-  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:32px 16px;">
-    <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
-      <tr><td style="background:linear-gradient(135deg,#4f46e5 0%,#7c3aed 100%);padding:36px 40px;text-align:center;">
-        <div style="font-size:22px;font-weight:800;color:#fff;">${companyName}</div>
-      </td></tr>
-      <tr><td style="padding:36px 40px;color:#0f172a;font-size:15px;">${bodyHtml}</td></tr>
-      <tr><td style="padding:0 40px 36px;text-align:center;">
-        <a href="${ctaUrl}" style="display:inline-block;padding:14px 32px;background:#4f46e5;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:15px;">${ctaText}</a>
-      </td></tr>
-      <tr><td style="background:#f8fafc;padding:20px 40px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;">
-        © ${new Date().getFullYear()} ${companyName}. <a href="#" style="color:#94a3b8;">Unsubscribe</a>
-      </td></tr>
-    </table>
-  </td></tr></table>
-</body></html>`;
-  }
-
-  if (templateId === "newsletter") {
-    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>${subject}</title></head>
-<body style="margin:0;padding:0;background:#fafafa;font-family:Georgia,'Times New Roman',serif;">
-  ${preheaderHtml}
-  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:32px 16px;">
-    <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#fff;border-radius:4px;border:1px solid #e2e8f0;">
-      <tr><td style="padding:28px 40px;border-bottom:3px solid #0f172a;text-align:center;">
-        <div style="font-size:11px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#64748b;margin-bottom:6px;">${companyName} Newsletter</div>
-        <div style="font-size:26px;font-weight:800;color:#0f172a;">${subject}</div>
-        <div style="font-size:12px;color:#94a3b8;margin-top:6px;">${new Date().toLocaleDateString("en-US",{month:"long",day:"numeric",year:"numeric"})}</div>
-      </td></tr>
-      <tr><td style="padding:32px 40px;color:#1e293b;font-size:16px;line-height:1.8;">${bodyHtml}</td></tr>
-      <tr><td style="padding:0 40px 32px;">
-        <a href="${ctaUrl}" style="display:inline-block;padding:12px 28px;background:#0f172a;color:#fff;text-decoration:none;border-radius:4px;font-family:'Segoe UI',system-ui,sans-serif;font-weight:700;font-size:14px;">${ctaText} →</a>
-      </td></tr>
-      <tr><td style="padding:20px 40px;text-align:center;font-family:'Segoe UI',system-ui,sans-serif;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;">
-        <a href="#" style="color:#64748b;">Unsubscribe</a> · <a href="#" style="color:#64748b;">Manage Preferences</a>
-      </td></tr>
-    </table>
-  </td></tr></table>
-</body></html>`;
-  }
-
-  if (templateId === "announcement") {
-    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/><title>${subject}</title></head>
-<body style="margin:0;padding:0;background:#0f172a;font-family:'Segoe UI',system-ui,sans-serif;">
-  ${preheaderHtml}
-  <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="padding:32px 16px;">
-    <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;background:#1e293b;border-radius:20px;overflow:hidden;">
-      <tr><td style="padding:48px 40px 32px;text-align:center;">
-        <div style="display:inline-block;padding:6px 16px;background:rgba(79,70,229,0.25);border:1px solid rgba(79,70,229,0.5);border-radius:999px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#a5b4fc;margin-bottom:20px;">${companyName}</div>
-        <div style="font-size:30px;font-weight:900;color:#f8fafc;letter-spacing:-1px;line-height:1.2;margin-bottom:10px;">${subject}</div>
-        ${preheader ? `<div style="font-size:15px;color:#94a3b8;margin-top:8px;">${preheader}</div>` : ""}
-      </td></tr>
-      <tr><td style="padding:0 40px;"><div style="height:1px;background:linear-gradient(90deg,transparent,rgba(99,102,241,0.5),transparent);"></div></td></tr>
-      <tr><td style="padding:32px 40px;color:#cbd5e1;font-size:15px;line-height:1.75;">${bodyHtml}</td></tr>
-      <tr><td style="padding:0 40px 40px;text-align:center;">
-        <a href="${ctaUrl}" style="display:inline-block;padding:15px 36px;background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;text-decoration:none;border-radius:10px;font-weight:800;font-size:15px;box-shadow:0 4px 20px rgba(79,70,229,0.4);">${ctaText}</a>
-      </td></tr>
-      <tr><td style="padding:20px 40px;text-align:center;font-size:11px;color:#475569;border-top:1px solid #334155;">
-        © ${new Date().getFullYear()} ${companyName}. <a href="#" style="color:#64748b;text-decoration:none;">Unsubscribe</a>
-      </td></tr>
-    </table>
-  </td></tr></table>
-</body></html>`;
-  }
-
-  return renderEmailHtml("promo", data);
-}
+import { renderEmailHtml } from "../templates/email";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-const DRAFT_STORAGE_KEY = "rd-email-editor-draft-v3";
-
 const PREVIEW_VARIANTS = [
   { id: "promo",        label: "Simple Promo",   subtitle: "High-conversion CTA",  templateId: "promo" },
   { id: "newsletter",   label: "Newsletter",     subtitle: "Content-first digest", templateId: "newsletter" },
   { id: "announcement", label: "Announcement",   subtitle: "Bold launch style",    templateId: "announcement" },
 ];
-
-const STEPS = [
-  { num: "01", label: "Email Content" },
-  { num: "02", label: "Choose Template" },
-  { num: "03", label: "Upload Contacts" },
-  { num: "04", label: "Preview & Send" },
-];
-
-const DEFAULT_DRAFT = {
-  campaignName: "Spring Collection Launch",
-  fromEmail: "hello@rainbowdash.io",
-  toEmail: "",
-  subject: "Your early access to our new collection",
-  preheader: "Limited preview for subscribers this week.",
-  ctaText: "View Collection",
-  ctaUrl: "https://example.com/new",
-  body: "Hi {{first_name}},\n\nWe just launched a fresh set of products designed for growing teams. As a subscriber, you get early access before public release.\n\nTap the button below to explore the full collection and claim your launch offer.\n\nBest regards,\nRainbowDash Team",
-};
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function loadDraft() {
-  if (typeof window === "undefined") return DEFAULT_DRAFT;
-  try {
-    const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
-    if (!raw) return DEFAULT_DRAFT;
-    return { ...DEFAULT_DRAFT, ...JSON.parse(raw) };
-  } catch { return DEFAULT_DRAFT; }
-}
-
-function validate(values) {
-  const errors = {};
-  if (!values.subject.trim()) errors.subject = "Subject is required.";
-  else if (values.subject.trim().length < 6) errors.subject = "Must be at least 6 characters.";
-  if (!values.body.trim()) errors.body = "Message body is required.";
-  else if (values.body.trim().length < 40) errors.body = "Must be at least 40 characters.";
-  return errors;
-}
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const C = {
@@ -155,49 +26,6 @@ const C = {
   redLight:      "#fef2f2",
   redBorder:     "#fecaca",
 };
-
-// ─── Step Indicator ───────────────────────────────────────────────────────────
-function StepIndicator({ current = 0 }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center" }}>
-      {STEPS.map((step, i) => {
-        const active = i === current;
-        const done   = i < current;
-        return (
-          <div key={step.num} style={{ display: "flex", alignItems: "center" }}>
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: "50%",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 11, fontWeight: 700,
-                background: active ? C.primary : done ? C.primaryLight : "#f1f5f9",
-                color: active ? "#fff" : done ? C.primaryText : C.inkSoft,
-                boxShadow: active ? `0 0 0 4px ${C.primaryLight}, 0 4px 12px rgba(79,70,229,0.25)` : "none",
-                transition: "all 0.2s",
-              }}>
-                {done ? (
-                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                    <path d="M2 6.5l3 3 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                ) : step.num}
-              </div>
-              <span style={{
-                marginTop: 5, fontSize: 10, fontWeight: 600, whiteSpace: "nowrap",
-                color: active ? C.primary : done ? C.primaryText : C.inkSoft,
-              }}>{step.label}</span>
-            </div>
-            {i < STEPS.length - 1 && (
-              <div style={{
-                width: 48, height: 1, margin: "0 8px 18px",
-                background: done ? C.primaryBorder : C.border,
-              }} />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 // ─── Field wrapper ────────────────────────────────────────────────────────────
 function Field({ label, error, hint, children }) {
@@ -238,52 +66,54 @@ function Input({ value, onChange, placeholder, hasError }) {
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
-export default function EmailEditor({ onNext }) {
-  const initial = loadDraft();
+function validate(subject, body) {
+  const errors = {};
+  if (!subject.trim()) errors.subject = "Subject is required.";
+  else if (subject.trim().length < 6) errors.subject = "Subject must be at least 6 characters.";
+  if (!body.trim()) errors.body = "Message body is required.";
+  else if (body.trim().length < 40) errors.body = "Message body must be at least 40 characters.";
+  return errors;
+}
 
-  const [campaignName, setCampaignName] = useState(initial.campaignName);
-  const [fromEmail,    setFromEmail]    = useState(initial.fromEmail);
-  const [toEmail,      setToEmail]      = useState(initial.toEmail);
-  const [subject,      setSubject]      = useState(initial.subject);
-  const [preheader,    setPreheader]    = useState(initial.preheader);
-  const [ctaText,      setCtaText]      = useState(initial.ctaText);
-  const [ctaUrl,       setCtaUrl]       = useState(initial.ctaUrl);
-  const [body,         setBody]         = useState(initial.body);
-
-  const [deviceMode,   setDeviceMode]   = useState("desktop");
+export default function EmailEditorSection({ sectionRef, campaign, onChange, onNext }) {
+  const [deviceMode, setDeviceMode] = useState("desktop");
   const [previewIndex, setPreviewIndex] = useState(0);
-  const [showErrors,   setShowErrors]   = useState(false);
-  const [feedback,     setFeedback]     = useState("Draft autosaves locally as you type.");
-  const [taFocused,    setTaFocused]    = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
+  const [feedback, setFeedback] = useState("Draft autosaves locally as you type.");
+  const [taFocused, setTaFocused] = useState(false);
 
   const textareaRef = useRef(null);
 
-  const errors      = useMemo(() => validate({ subject, body }), [subject, body]);
+  const errors = useMemo(() => validate(campaign.subject, campaign.body), [campaign.subject, campaign.body]);
   const canContinue = Object.keys(errors).length === 0;
-  const wordCount   = body.trim() ? body.trim().split(/\s+/).length : 0;
+  const wordCount = campaign.body.trim() ? campaign.body.trim().split(/\s+/).length : 0;
 
   const previewData = useMemo(() => ({
-    subject, preheader, body, ctaText, ctaUrl, companyName: campaignName,
-  }), [body, campaignName, ctaText, ctaUrl, preheader, subject]);
+    subject: campaign.subject,
+    preheader: campaign.preheader,
+    body: campaign.body,
+    ctaText: campaign.ctaText,
+    ctaUrl: campaign.ctaUrl,
+    companyName: campaign.campaignName,
+  }), [campaign]);
 
   const renderedPreviews = useMemo(
     () => PREVIEW_VARIANTS.map((v) => renderEmailHtml(v.templateId, previewData)),
     [previewData],
   );
 
-  useEffect(() => {
-    window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify({
-      campaignName, fromEmail, toEmail, subject, preheader, ctaText, ctaUrl, body,
-      updatedAt: new Date().toISOString(),
-    }));
-  }, [body, campaignName, ctaText, ctaUrl, fromEmail, preheader, subject, toEmail]);
+  function update(field, value) {
+    onChange({ ...campaign, [field]: value });
+  }
 
   function insertSnippet(snippet) {
     const el = textareaRef.current;
-    if (!el) { setBody((p) => p + snippet); return; }
+    if (!el) {
+      update("body", campaign.body + snippet);
+      return;
+    }
     const s = el.selectionStart, e = el.selectionEnd;
-    setBody(body.slice(0, s) + snippet + body.slice(e));
+    update("body", campaign.body.slice(0, s) + snippet + campaign.body.slice(e));
     requestAnimationFrame(() => {
       el.focus();
       el.setSelectionRange(s + snippet.length, s + snippet.length);
@@ -292,131 +122,93 @@ export default function EmailEditor({ onNext }) {
 
   function handleNext() {
     setShowErrors(true);
-    if (!canContinue) { setFeedback("Please fix validation issues before continuing."); return; }
-    setFeedback("Looks good! Continuing to template selection.");
-    if (typeof onNext === "function") {
-      onNext({
-        campaignName: campaignName.trim(), fromEmail: fromEmail.trim(), toEmail: toEmail.trim(),
-        subject: subject.trim(), preheader: preheader.trim(), body: body.trim(),
-        ctaText: ctaText.trim(), ctaUrl: ctaUrl.trim(),
-      });
+    if (!canContinue) {
+      setFeedback("Please fix validation issues before continuing.");
+      return;
     }
+    setFeedback("Looks good! Continuing to template selection.");
+    onNext();
   }
 
   function handleReset() {
-    setCampaignName(DEFAULT_DRAFT.campaignName); setFromEmail(DEFAULT_DRAFT.fromEmail);
-    setToEmail(DEFAULT_DRAFT.toEmail); setSubject(DEFAULT_DRAFT.subject);
-    setPreheader(DEFAULT_DRAFT.preheader); setCtaText(DEFAULT_DRAFT.ctaText);
-    setCtaUrl(DEFAULT_DRAFT.ctaUrl); setBody(DEFAULT_DRAFT.body);
-    setShowErrors(false); setFeedback("Editor reset to default content.");
+    update("campaignName", "Spring Collection Launch");
+    update("fromEmail", "hello@rainbowdash.io");
+    update("toEmail", "");
+    update("subject", "Your early access to our new collection");
+    update("preheader", "Limited preview for subscribers this week.");
+    update("ctaText", "View Collection");
+    update("ctaUrl", "https://example.com/new");
+    update("body", "Hi {{first_name}},\n\nWe just launched a fresh set of products designed for growing teams. As a subscriber, you get early access before public release.\n\nTap the button below to explore the full collection and claim your launch offer.\n\nBest regards,\nRainbowDash Team");
+    setShowErrors(false);
+    setFeedback("Editor reset to default content.");
   }
 
   const currentVariant = PREVIEW_VARIANTS[previewIndex];
 
-  const panelHeader = {
-    borderBottom: `1px solid ${C.border}`,
-    background: "rgba(248,250,252,0.9)",
-    padding: "14px 28px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    flexShrink: 0,
-  };
-
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "linear-gradient(135deg,#f0f1ff 0%,#f5f7ff 50%,#f8f9ff 100%)",
-      fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif",
-    }}>
-      {/* ── Top Header ── */}
-      <header style={{
-        borderBottom: `1px solid ${C.border}`,
-        background: "rgba(255,255,255,0.92)",
-        backdropFilter: "blur(8px)",
-        padding: "14px 32px",
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        position: "sticky", top: 0, zIndex: 40,
-      }}>
-        <div>
-          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.1em", textTransform: "uppercase", color: C.inkSoft, marginBottom: 2 }}>
-            Campaign Builder
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: C.ink, letterSpacing: "-0.3px" }}>
-            Create New Campaign
-          </div>
-        </div>
-        <StepIndicator current={0} />
-        <button onClick={handleNext} style={{
-          display: "flex", alignItems: "center", gap: 6,
-          padding: "9px 20px", borderRadius: 8, border: "none",
-          background: canContinue ? C.primary : "#cbd5e1",
-          color: "#fff", fontSize: 13, fontWeight: 700,
-          cursor: canContinue ? "pointer" : "not-allowed",
-          boxShadow: canContinue ? "0 2px 12px rgba(79,70,229,0.3)" : "none",
-          transition: "all 0.15s", fontFamily: "inherit",
-        }}>
-          Next
-          <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-            <path d="M3 7.5h9M8.5 3.5l4 4-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-      </header>
+    <section ref={sectionRef} className="px-8 py-10 lg:px-12">
+      <div className="mx-auto max-w-[1600px] rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_20px_55px_-40px_rgba(15,23,42,0.6)]">
+        <h3 className="text-3xl font-bold tracking-tight text-slate-900">Email Content</h3>
+        <p className="mt-2 text-sm text-slate-600">Fill in your campaign details and write your email copy.</p>
 
-      {/* ── Page body ── */}
-      <div style={{ maxWidth: 1380, margin: "0 auto", padding: "24px 32px" }}>
+        {/* Main card */}
         <div style={{
-          background: C.surface, border: `1px solid ${C.border}`,
-          borderRadius: 16, overflow: "hidden",
+          marginTop: 24,
+          background: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: 16,
+          overflow: "hidden",
           boxShadow: "0 4px 32px rgba(15,23,42,0.08)",
-          display: "flex", minHeight: 780,
+          display: "flex",
+          minHeight: 700,
         }}>
 
-          {/* ══ LEFT: Editor ══ */}
-          <div style={{ width: "50%", borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", minWidth: 0 }}>
-            <div style={panelHeader}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: C.ink, letterSpacing: "-0.2px" }}>Step 1: Email Content</div>
-                <div style={{ fontSize: 12, color: C.inkSoft, marginTop: 2 }}>Fill in your campaign details and write your email copy.</div>
-              </div>
-            </div>
-
+          {/* ══ LEFT: Editor ════════════════════════════════════════════ */}
+          <div style={{
+            width: "50%",
+            borderRight: `1px solid ${C.border}`,
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
+          }}>
+            {/* Scrollable form */}
             <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px", display: "flex", flexDirection: "column", gap: 16 }}>
+
               <Field label="Campaign Name">
-                <Input value={campaignName} onChange={(e) => setCampaignName(e.target.value)} placeholder="e.g. Spring Collection Launch" />
+                <Input value={campaign.campaignName} onChange={(e) => update("campaignName", e.target.value)} placeholder="e.g. Spring Collection Launch" />
               </Field>
 
               <div style={{ display: "flex", gap: 12 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <Field label="From">
-                    <Input value={fromEmail} onChange={(e) => setFromEmail(e.target.value)} placeholder="hello@company.com" />
+                    <Input value={campaign.fromEmail} onChange={(e) => update("fromEmail", e.target.value)} placeholder="hello@company.com" />
                   </Field>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <Field label="To (optional)">
-                    <Input value={toEmail} onChange={(e) => setToEmail(e.target.value)} placeholder="recipient@company.com" />
+                    <Input value={campaign.toEmail} onChange={(e) => update("toEmail", e.target.value)} placeholder="recipient@company.com" />
                   </Field>
                 </div>
               </div>
 
               <Field label="Subject Line" error={showErrors ? errors.subject : null}>
-                <Input value={subject} onChange={(e) => setSubject(e.target.value)}
+                <Input value={campaign.subject} onChange={(e) => update("subject", e.target.value)}
                   placeholder="Your compelling subject line…" hasError={showErrors && !!errors.subject} />
               </Field>
 
               <Field label="Preheader">
-                <Input value={preheader} onChange={(e) => setPreheader(e.target.value)} placeholder="Preview text shown in inbox…" />
+                <Input value={campaign.preheader} onChange={(e) => update("preheader", e.target.value)} placeholder="Preview text shown in inbox…" />
               </Field>
 
               <div style={{ display: "flex", gap: 12 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <Field label="CTA Button Text">
-                    <Input value={ctaText} onChange={(e) => setCtaText(e.target.value)} placeholder="View Collection" />
+                    <Input value={campaign.ctaText} onChange={(e) => update("ctaText", e.target.value)} placeholder="View Collection" />
                   </Field>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <Field label="CTA URL">
-                    <Input value={ctaUrl} onChange={(e) => setCtaUrl(e.target.value)} placeholder="https://…" />
+                    <Input value={campaign.ctaUrl} onChange={(e) => update("ctaUrl", e.target.value)} placeholder="https://…" />
                   </Field>
                 </div>
               </div>
@@ -439,8 +231,8 @@ export default function EmailEditor({ onNext }) {
                 <textarea
                   ref={textareaRef}
                   rows={9}
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
+                  value={campaign.body}
+                  onChange={(e) => update("body", e.target.value)}
                   onFocus={() => setTaFocused(true)}
                   onBlur={() => setTaFocused(false)}
                   placeholder="Write your email copy here…"
@@ -457,9 +249,13 @@ export default function EmailEditor({ onNext }) {
               </Field>
             </div>
 
+            {/* Footer */}
             <div style={{
-              borderTop: `1px solid ${C.border}`, background: "rgba(248,250,252,0.9)",
-              padding: "14px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0,
+              borderTop: `1px solid ${C.border}`,
+              background: "rgba(248,250,252,0.9)",
+              padding: "14px 28px",
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              flexShrink: 0,
             }}>
               <span style={{ fontSize: 12, color: C.inkSoft }}>{feedback}</span>
               <div style={{ display: "flex", gap: 8 }}>
@@ -484,9 +280,23 @@ export default function EmailEditor({ onNext }) {
             </div>
           </div>
 
-          {/* ══ RIGHT: Preview ══ */}
-          <div style={{ width: "50%", background: C.panelBg, display: "flex", flexDirection: "column", minWidth: 0 }}>
-            <div style={panelHeader}>
+          {/* ══ RIGHT: Preview ══════════════════════════════════════════ */}
+          <div style={{
+            width: "50%",
+            background: C.panelBg,
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
+          }}>
+            <div style={{
+              borderBottom: `1px solid ${C.border}`,
+              background: "rgba(248,250,252,0.9)",
+              padding: "14px 28px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexShrink: 0,
+            }}>
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: C.ink, letterSpacing: "-0.2px" }}>Preview</div>
                 <div style={{ fontSize: 12, color: C.inkSoft, marginTop: 2 }}>
@@ -502,8 +312,10 @@ export default function EmailEditor({ onNext }) {
             </div>
 
             <div style={{ flex: 1, padding: "20px 28px", display: "flex", flexDirection: "column", gap: 14 }}>
+
               {/* Carousel */}
               <div style={{ flex: 1, position: "relative", display: "flex", alignItems: "center" }}>
+                {/* Left arrow */}
                 <button
                   onClick={() => setPreviewIndex((p) => (p - 1 + PREVIEW_VARIANTS.length) % PREVIEW_VARIANTS.length)}
                   aria-label="Previous"
@@ -519,6 +331,8 @@ export default function EmailEditor({ onNext }) {
                     <path d="M9 2.5L4 7l5 4.5" stroke={C.inkMid} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                 </button>
+
+                {/* Right arrow */}
                 <button
                   onClick={() => setPreviewIndex((p) => (p + 1) % PREVIEW_VARIANTS.length)}
                   aria-label="Next"
@@ -535,6 +349,7 @@ export default function EmailEditor({ onNext }) {
                   </svg>
                 </button>
 
+                {/* Stacked cards */}
                 <div style={{ position: "relative", width: "100%", height: 420, margin: "0 10px" }}>
                   {PREVIEW_VARIANTS.map((variant, index) => {
                     const total  = PREVIEW_VARIANTS.length;
@@ -544,9 +359,9 @@ export default function EmailEditor({ onNext }) {
                     const isPrev   = offset === total - 1;
 
                     let tx = 0, ty = 0, rot = 0, z = 1, op = 0.3, sc = 0.90;
-                    if (isActive) { tx = 0;   ty = 0;  rot = 0;  z = 10; op = 1;    sc = 1; }
-                    if (isNext)   { tx = 18;  ty = 14; rot = 2;  z = 5;  op = 0.65; sc = 0.95; }
-                    if (isPrev)   { tx = -18; ty = 14; rot = -2; z = 5;  op = 0.65; sc = 0.95; }
+                    if (isActive) { tx = 0;   ty = 0;  rot = 0;    z = 10; op = 1;    sc = 1; }
+                    if (isNext)   { tx = 18;  ty = 14; rot = 2;    z = 5;  op = 0.65; sc = 0.95; }
+                    if (isPrev)   { tx = -18; ty = 14; rot = -2;   z = 5;  op = 0.65; sc = 0.95; }
 
                     return (
                       <div
@@ -558,12 +373,14 @@ export default function EmailEditor({ onNext }) {
                           opacity: op,
                           transition: "all 0.38s cubic-bezier(0.34,1.4,0.64,1)",
                           cursor: isActive ? "default" : "pointer",
-                          borderRadius: 14, border: `1px solid ${C.border}`,
+                          borderRadius: 14,
+                          border: `1px solid ${C.border}`,
                           background: C.surface,
                           boxShadow: isActive ? "0 8px 32px rgba(15,23,42,0.1)" : "0 2px 8px rgba(15,23,42,0.06)",
                           overflow: "hidden",
                         }}
                       >
+                        {/* Browser chrome */}
                         <div style={{
                           height: 28, display: "flex", alignItems: "center", gap: 5,
                           padding: "0 12px", background: "#f1f5f9",
@@ -574,6 +391,7 @@ export default function EmailEditor({ onNext }) {
                           <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#34d399" }} />
                           <div style={{ marginLeft: 8, height: 14, width: 130, borderRadius: 4, background: "rgba(255,255,255,0.9)" }} />
                         </div>
+                        {/* Content */}
                         <div style={{ background: "#dde3ee", padding: 10, height: "calc(100% - 28px)" }}>
                           <div style={{
                             height: "100%", borderRadius: 8, overflow: "hidden",
@@ -616,7 +434,8 @@ export default function EmailEditor({ onNext }) {
                     <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                       <div style={{
                         width: 7, height: 7, borderRadius: "50%",
-                        background: index === previewIndex ? C.primary : C.border, flexShrink: 0,
+                        background: index === previewIndex ? C.primary : C.border,
+                        flexShrink: 0,
                       }} />
                       <span style={{ fontSize: 11, fontWeight: 700, color: index === previewIndex ? C.primaryText : C.ink }}>
                         {variant.label}
@@ -643,7 +462,8 @@ export default function EmailEditor({ onNext }) {
                     background: deviceMode === mode ? C.primary : "transparent",
                     color: deviceMode === mode ? "#fff" : C.inkMid,
                     fontSize: 11, fontWeight: 600, cursor: "pointer",
-                    textTransform: "capitalize", transition: "all 0.15s", fontFamily: "inherit",
+                    textTransform: "capitalize", transition: "all 0.15s",
+                    fontFamily: "inherit",
                   }}>
                     {mode === "desktop" ? (
                       <svg width="13" height="11" viewBox="0 0 13 11" fill="none">
@@ -665,6 +485,6 @@ export default function EmailEditor({ onNext }) {
 
         </div>
       </div>
-    </div>
+    </section>
   );
 }
