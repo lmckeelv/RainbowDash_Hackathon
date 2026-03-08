@@ -19,7 +19,3 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
-
-# Test data
-*.csv
-*.txt
