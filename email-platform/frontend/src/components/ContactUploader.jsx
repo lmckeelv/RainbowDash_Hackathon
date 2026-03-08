@@ -57,66 +57,23 @@ export default function ContactUploader({ onContactsReady }) {
 
   return (
     <div style={{ fontFamily: "sans-serif", maxWidth: 560, margin: "40px auto", padding: "0 16px" }}>
-      <h2>📧 Email Tool</h2>
-
       {/* Upload */}
       <section style={card}>
-        <h3>1. Upload Contacts</h3>
         <input type="file" accept=".csv,.txt" onChange={handleFileChange} />
 
         {status?.error && <p style={errorStyle}>{status.error}</p>}
 
         {status && !status.error && (
           <div style={{ marginTop: 12 }}>
-            <p>✅ <strong>{status.valid_count}</strong> valid recipients</p>
-            {status.duplicate_count > 0 && <p>🔁 {status.duplicate_count} duplicates removed</p>}
-            {status.invalid_count > 0 && (
-              <>
-                <p>⚠️ {status.invalid_count} invalid emails skipped:</p>
-                <ul style={{ fontSize: 12, color: "#888" }}>
-                  {status.invalid_emails.map(e => <li key={e}>{e}</li>)}
-                </ul>
-              </>
-            )}
+            <p>
+            {status.valid_count} valid recipient{status.valid_count !== 1 ? "s" : ""}... 
+            {status.duplicate_count} duplicate{status.duplicate_count !== 1 ? "s" : ""} removed... 
+            {status.invalid_count} invalid email{status.invalid_count !== 1 ? "s" : ""} skipped...
+            </p>
           </div>
         )}
       </section>
 
-      {/* Compose */}
-      {recipients.length > 0 && (
-        <section style={card}>
-          <h3>2. Compose Test Email</h3>
-          <label style={labelStyle}>Subject</label>
-          <input
-            value={subject}
-            onChange={e => setSubject(e.target.value)}
-            style={inputStyle}
-          />
-          <label style={labelStyle}>Body (HTML)</label>
-          <textarea
-            value={body}
-            onChange={e => setBody(e.target.value)}
-            rows={5}
-            style={{ ...inputStyle, resize: "vertical" }}
-          />
-          <button onClick={handleSend} disabled={sending} style={btnStyle}>
-            {sending ? "Sending…" : `Send to ${recipients.length} recipient${recipients.length !== 1 ? "s" : ""}`}
-          </button>
-        </section>
-      )}
-
-      {/* Send result */}
-      {sendResult && (
-        <section style={card}>
-          {sendResult.error
-            ? <p style={errorStyle}>{sendResult.error}</p>
-            : <>
-                <p>✅ Sent: <strong>{sendResult.sent_count}</strong></p>
-                {sendResult.error_count > 0 && <p>❌ Failed: {sendResult.error_count}</p>}
-              </>
-          }
-        </section>
-      )}
     </div>
   );
 }
