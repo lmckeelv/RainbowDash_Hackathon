@@ -236,10 +236,10 @@ export default function EmailEditor() {
             </div>
             <div style={{ flex: 1, overflowY: "auto", padding: "20px 28px", display: "flex", flexDirection: "column", gap: 16 }}>
               <Field label="Subject" required error={showErrors && !subject.trim() ? "Subject is required." : null}>
-                <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Big news from Acme!" hasError={showErrors && !subject.trim()} />
+                <Input value={subject} onChange={e => setSubject(e.target.value)} placeholder="e.g. Big news from MailDash!" hasError={showErrors && !subject.trim()} />
               </Field>
               <Field label="Business Name">
-                <Input value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="e.g. Acme Co." />
+                <Input value={businessName} onChange={e => setBusinessName(e.target.value)} placeholder="e.g. MailDash Co." />
               </Field>
               <Field label="Header">
                 <Input value={header} onChange={e => setHeader(e.target.value)} placeholder="e.g. We have exciting news for you!" />
@@ -263,11 +263,11 @@ export default function EmailEditor() {
                 />
               </Field>
               <Field label="Website">
-                <Input value={website} onChange={e => setWebsite(e.target.value)} placeholder="e.g. https://acme.com" />
+                <Input value={website} onChange={e => setWebsite(e.target.value)} placeholder="e.g. https://maildash.gay" />
               </Field>
               <Field label="Reply-To Email">
                 <p style={{ fontSize: 11, color: C.inkSoft, margin: "0 0 4px" }}>Replies from recipients will go here.</p>
-                <Input value={replyTo} onChange={e => setReplyTo(e.target.value)} placeholder="e.g. hello@acme.com" type="email" />
+                <Input value={replyTo} onChange={e => setReplyTo(e.target.value)} placeholder="e.g. hello@maildash.gay" type="email" />
               </Field>
               <Field label="Recipients">
                 <p style={{ fontSize: 11, color: C.inkSoft, margin: "0 0 6px" }}>Upload a CSV with <code>name</code> and <code>email</code> columns.</p>
@@ -276,9 +276,9 @@ export default function EmailEditor() {
                 {uploadStatus?.error  && <p style={{ fontSize: 12, color: C.red,     margin: "6px 0 0" }}>{uploadStatus.error}</p>}
                 {uploadStatus && !uploadStatus.error && !uploadStatus.loading && (
                   <div style={{ fontSize: 12, marginTop: 8, display: "flex", flexDirection: "column", gap: 3 }}>
-                    <span>✅ <strong>{uploadStatus.valid_count}</strong> valid recipient{uploadStatus.valid_count !== 1 ? "s" : ""}</span>
-                    {uploadStatus.duplicate_count > 0 && <span>🔁 {uploadStatus.duplicate_count} duplicate{uploadStatus.duplicate_count !== 1 ? "s" : ""} removed</span>}
-                    {uploadStatus.invalid_count  > 0 && <span>⚠️ {uploadStatus.invalid_count} invalid skipped</span>}
+                    <span> <strong>{uploadStatus.valid_count}</strong> valid recipient{uploadStatus.valid_count !== 1 ? "s" : ""}</span>
+                    {uploadStatus.duplicate_count > 0 && <span> {uploadStatus.duplicate_count} duplicate{uploadStatus.duplicate_count !== 1 ? "s" : ""} removed</span>}
+                    {uploadStatus.invalid_count  > 0 && <span> {uploadStatus.invalid_count} invalid skipped</span>}
                   </div>
                 )}
               </Field>
@@ -288,20 +288,20 @@ export default function EmailEditor() {
             <div style={{ borderTop: `1px solid ${C.border}`, background: "rgba(248,250,252,0.9)", padding: "14px 28px", flexShrink: 0 }}>
               <p style={{ fontSize: 12, color: C.inkSoft, margin: "0 0 10px" }}>
                 {!hasRecipients
-                  ? "⬆️ Upload a CSV above to enable sending."
+                  ? "⬆ Upload a CSV above to enable sending."
                   : !subject.trim() || !body.trim()
-                  ? "✏️ Fill in subject and body to send."
-                  : `🚀 Ready to send to ${recipients.length} recipient${recipients.length !== 1 ? "s" : ""} using the ${toLabel(selectedTemplate || "")} template.`}
+                  ? " Fill in subject and body to send."
+                  : ` Ready to send to ${recipients.length} recipient${recipients.length !== 1 ? "s" : ""} using the ${toLabel(selectedTemplate || "")} template.`}
               </p>
               {sendResult && (
                 <div style={{ fontSize: 13, marginBottom: 10 }}>
                   {sendResult.error
                     ? <p style={{ color: C.red, margin: 0 }}>{sendResult.error}</p>
                     : <>
-                        <p style={{ margin: "0 0 4px" }}>✅ Sent: <strong>{sendResult.sent_count}</strong></p>
+                        <p style={{ margin: "0 0 4px" }}>Sent: <strong>{sendResult.sent_count}</strong></p>
                         {sendResult.error_count > 0 && (
                           <>
-                            <p style={{ color: C.red, margin: "0 0 4px" }}>❌ Failed: {sendResult.error_count}</p>
+                            <p style={{ color: C.red, margin: "0 0 4px" }}>Failed: {sendResult.error_count}</p>
                             {sendResult.errors?.map(e => <p key={e.email} style={{ color: C.red, fontSize: 11, margin: "2px 0" }}>{e.email}: {e.error}</p>)}
                           </>
                         )}

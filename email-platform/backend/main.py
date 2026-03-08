@@ -4,7 +4,6 @@ from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import resend
 import os
-import base64
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -33,29 +32,15 @@ TEMPLATE_DIR = Path(__file__).parent / "templates"
 def load_all_templates() -> dict[str, str]:
     """
     Load every .html file in the templates folder.
-    Images in templates/images/ are embedded as base64 data URIs.
-    Key = filename stem with spaces replaced by hyphens, lowercased
-          e.g. "New Message.html" -> "new-message"
-               "email.html"       -> "email"
+    Images should use hosted URLs (e.g. imgbb) directly in the HTML —
+    no base64 embedding needed.
+    Key = filename stem, lowercased, spaces replaced with hyphens.
+    e.g. "New Message.html" -> "new-message", "email.html" -> "email"
     """
     templates = {}
-    images_dir = TEMPLATE_DIR / "images"
-
     for html_file in TEMPLATE_DIR.glob("*.html"):
-        html = html_file.read_text(encoding="utf-8")
-
-        if images_dir.exists():
-            for img_file in images_dir.iterdir():
-                if img_file.suffix.lower() in (".png", ".jpg", ".jpeg", ".gif"):
-                    b64 = base64.b64encode(img_file.read_bytes()).decode("utf-8")
-                    mime = "image/png" if img_file.suffix.lower() == ".png" else "image/jpeg"
-                    data_uri = f"data:{mime};base64,{b64}"
-                    html = html.replace(f"images/{img_file.name}", data_uri)
-
-        # Normalise key: lowercase, spaces -> hyphens
         key = html_file.stem.lower().replace(" ", "-")
-        templates[key] = html
-
+        templates[key] = html_file.read_text(encoding="utf-8")
     return templates
 
 
@@ -78,7 +63,7 @@ class Recipient(BaseModel):
 
 class SendRequest(BaseModel):
     recipients: list[Recipient]
-    template_name: str = ""   # optional — falls back to first available template
+    template_name: str = ""   # falls back to first available template if omitted
     subject: str
     header: str = ""
     body: str
@@ -98,16 +83,19 @@ def list_templates():
 @app.get("/preview/{template_name}", response_class=HTMLResponse)
 async def preview_template(
     template_name: str,
-    name: str = "Laura",
-    subject: str = "Big news from Acme!",
+    name: str = "[Name]",
+    subject: str = "Big news from MailDash!",
     header: str = "We have exciting news for you!",
     body: str = "We're launching something new and we think you'll love it.\nStay tuned for more details coming soon.",
-    business_name: str = "Acme Co.",
-    website: str = "https://acme.com",
+    business_name: str = "MailDash Co.",
+    website: str = "https://maildash.gay",
 ):
-    """Render a template with sample/live data and return HTML — used for preview iframes."""
+    """Render a template with live field values — used for the frontend preview iframe."""
     if template_name not in TEMPLATES:
-        raise HTTPException(status_code=404, detail=f"Template '{template_name}' not found. Available: {list(TEMPLATES.keys())}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Template '{template_name}' not found. Available: {list(TEMPLATES.keys())}"
+        )
     html = render_template(TEMPLATES[template_name], {
         "name": name,
         "subject": subject,
@@ -152,7 +140,7 @@ async def send_emails(req: SendRequest):
     if not TEMPLATES:
         raise HTTPException(status_code=500, detail="No templates found in backend/templates/")
 
-    # Resolve which template to use
+    # Use requested template, or fall back to the first one
     template_key = req.template_name if req.template_name in TEMPLATES else next(iter(TEMPLATES))
     template = TEMPLATES[template_key]
 
@@ -161,8 +149,7 @@ async def send_emails(req: SendRequest):
 
     for recipient in req.recipients:
         try:
-            display_name = recipient.name if recipient.name else "there"
-
+            display_name = recipient.name or "there"
             html = render_template(template, {
                 "name": display_name,
                 "body": req.body,
@@ -171,7 +158,6 @@ async def send_emails(req: SendRequest):
                 "business_name": req.business_name,
                 "website": req.website,
             })
-
             email_payload = {
                 "from": SENDER_EMAIL,
                 "to": recipient.email,
