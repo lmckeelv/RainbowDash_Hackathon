@@ -4,32 +4,6 @@ import LandingPage from "./Pages/LandingPage";
 import PlaceholderPage from "./Pages/PlaceholderPage";
 import SuccessStatusPage from "./Pages/SuccessStatusPage";
 
-const NAV_ITEMS = [
-  { label: "Landing", path: "/" },
-  { label: "Dashboard", path: "/dashboard" },
-  { label: "Email Editor", path: "/email-editor" },
-  { label: "Template Selection", path: "/template-selection" },
-  { label: "Contact Upload", path: "/contact-upload" },
-  { label: "Preview & Send", path: "/preview-send" },
-  { label: "Success Status", path: "/success-status" },
-];
-
-function RouteButton({ active, label, path, onNavigate }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onNavigate(path)}
-      className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-        active
-          ? "bg-slate-900 text-white"
-          : "border border-slate-300 bg-white text-slate-700 hover:border-slate-400"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
-
 export default function App() {
   const [path, setPath] = useState(window.location.pathname || "/");
 
@@ -90,23 +64,5 @@ export default function App() {
     );
   }
 
-  return (
-    <>
-      <div className="sticky top-0 z-50 border-b border-slate-300/80 bg-white/85 px-4 py-2 backdrop-blur">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-2">
-          {NAV_ITEMS.map((item) => (
-            <RouteButton
-              key={item.path}
-              label={item.label}
-              path={item.path}
-              active={path === item.path}
-              onNavigate={navigate}
-            />
-          ))}
-        </div>
-      </div>
-
-      {page}
-    </>
-  );
+  return page;
 }
