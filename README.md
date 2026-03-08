@@ -2,18 +2,31 @@
 
 ---
 
-# RainbowDash – Easy Email Marketing for Small Businesses
+# MailDash – Easy Email Marketing for Small Businesses
 
-RainbowDash is a lightweight email marketing platform designed for **small businesses and nonprofits** that need a fast and simple way to send professional marketing emails to their customers.
+MailDash is a lightweight email marketing platform designed for **small businesses and nonprofits** that need a fast and simple way to send professional marketing emails to their customers.
 
-Instead of complex tools like Mailchimp with heavy onboarding, RainbowDash focuses on doing **one thing extremely well**:
+Instead of complex tools like Mailchimp with heavy onboarding, MailDash focuses on doing **one thing extremely well**:
 
-➡️ Upload contacts
-➡️ Choose a template
-➡️ Customize your message
-➡️ Send a mass email campaign
+- Upload contacts
+- Choose a template
+- Customize your message
+- Send a mass email campaign
 
 The platform allows users to upload customer lists, select visually appealing email templates, preview the final message, and send emails directly from the application.
+
+---
+
+# Quick Set up
+
+Visit www.maildash.gay to send quick emails, or follow the steps below to run this locally on your computer. 
+
+If run locally, add this info to the .env file:
+
+RESEND_API_KEY=(your Resend API key - it's free)
+SENDER_EMAIL=(the domain you want to send emails from, set up in Resend)
+
+If you want to make changes to the available templates, there are drag and drop html editors available online. Just add to or modify the templates in \email-platform\backend\templates. Add your brand colors or logo!
 
 ---
 
@@ -28,13 +41,13 @@ Small businesses often struggle with email marketing tools because they are:
 
 Many businesses simply want to **send a professional email campaign quickly** without learning a full marketing platform.
 
-RainbowDash solves this by providing a **simple, focused workflow for sending email campaigns.**
+MailDash solves this by providing a **simple, focused workflow for sending email campaigns.**
 
 ---
 
 # Our Solution
 
-RainbowDash provides a simple pipeline:
+MailDash provides a simple pipeline:
 
 1. Upload a **CSV file of contacts**
 2. Select an **email template**
@@ -91,7 +104,7 @@ These values are dynamically inserted into the selected template.
 
 ### Email Sending
 
-RainbowDash integrates with an email delivery service to send the campaign to all uploaded contacts.
+MailDash integrates with an email delivery service to send the campaign to all uploaded contacts.
 
 ---
 
@@ -139,8 +152,8 @@ email-platform
 ├── backend
 │   ├── main.py                # FastAPI entry point
 │   ├── routers
-│   │   ├── contacts.py        # CSV contact upload endpoints
-│   │   └── send.py            # Email sending endpoints
+│   │   ├── contacts.py        # CSV contact upload endpoints (TODO)
+│   │   └── send.py            # Email sending endpoints (TODO)
 │   │
 │   ├── services
 │   │   ├── parse_contacts.py  # CSV parsing logic
@@ -148,7 +161,7 @@ email-platform
 │   │   └── validate_email.py  # Email validation
 │   │
 │   ├── models
-│   │   └── schemas.py         # API request/response models
+│   │   └── schemas.py         # API request/response models (TODO)
 │   │
 │   └── templates              # HTML email templates
 │
@@ -266,7 +279,7 @@ Possible features to extend the platform:
 
 # Hackathon Project
 
-RainbowDash was built during a hackathon focused on **bettering businesses** by creating tools that improve marketing and customer communication.
+MailDash was built during a hackathon focused on **bettering businesses** by creating tools that improve marketing and customer communication.
 
 The goal was to build a **simple but powerful email campaign tool** that small organizations could use without needing technical expertise.
 

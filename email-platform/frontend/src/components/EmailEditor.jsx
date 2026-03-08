@@ -220,6 +220,7 @@ export default function EmailEditor() {
   const previewTimer      = useRef(null);
   const fileInputRef      = useRef(null);
   const summarySectionRef = useRef(null);
+  const sendingRef        = useRef(false);
 
   const templateOptions      = templates.length > 0 ? templates : FALLBACK_TEMPLATES;
   const hasRecipients        = recipients.length > 0;
@@ -311,7 +312,8 @@ export default function EmailEditor() {
 
   async function handleSendCampaign() {
     setShowErrors(true);
-    if (!canSend) return;
+    if (!canSend || sendingRef.current) return;
+    sendingRef.current = true;
     setSending(true);
     setSendResult(null);
     try {
@@ -332,6 +334,7 @@ export default function EmailEditor() {
       setSendResult({ error: err.message || "Send failed.", sent_count: 0, error_count: 0 });
       setShowModal(true);
     } finally {
+      sendingRef.current = false;
       setSending(false);
     }
   }
@@ -396,7 +399,7 @@ export default function EmailEditor() {
 
         {/* Step 1: Compose */}
         <div style={sectionCard}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))" }}>
 
             {/* Compose fields */}
             <div style={{ borderRight: `1px solid ${C.border}` }}>
@@ -573,7 +576,7 @@ export default function EmailEditor() {
 
         {/* Step 2: Upload Contacts */}
         <div style={sectionCard}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))" }}>
 
             {/* Uploader */}
             <div style={{ borderRight: `1px solid ${C.border}` }}>
