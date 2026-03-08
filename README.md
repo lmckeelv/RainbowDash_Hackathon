@@ -2,7 +2,7 @@
 
 ---
 
-# RainbowDash – AI-Powered Email Marketing for Small Businesses
+# RainbowDash – Easy Email Marketing for Small Businesses
 
 RainbowDash is a lightweight email marketing platform designed for **small businesses and nonprofits** that need a fast and simple way to send professional marketing emails to their customers.
 
