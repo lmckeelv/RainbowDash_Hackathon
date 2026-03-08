@@ -5,9 +5,8 @@
 @tailwind utilities;
 
 :root {
-  --canvas-a: #d8ede9;
-  --canvas-b: #eef6f4;
-  --ink: #0f172a;
+  --ink: #141b2f;
+  --canvas: #eceff9;
 }
 
 * {
@@ -19,10 +18,7 @@ body {
   min-height: 100vh;
   font-family: "Inter", "Segoe UI", sans-serif;
   color: var(--ink);
-  background:
-    radial-gradient(circle at 9% 10%, rgba(6, 182, 212, 0.16), transparent 34%),
-    radial-gradient(circle at 92% 12%, rgba(16, 185, 129, 0.14), transparent 30%),
-    linear-gradient(136deg, var(--canvas-a), var(--canvas-b));
+  background: var(--canvas);
 }
 
 #root {
@@ -40,14 +36,14 @@ textarea {
 }
 
 ::-webkit-scrollbar-track {
-  background: #d8ede9;
+  background: #e7ebf4;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4b5563;
+  background: #b9c4d7;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #374151;
+  background: #9dabc2;
 }
